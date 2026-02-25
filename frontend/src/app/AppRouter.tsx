@@ -1,0 +1,44 @@
+import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Layout } from "@/app/Layout";
+import { ProtectedRoute } from "@/app/ProtectedRoute";
+
+const DashboardPage = lazy(() => import("@/pages/Dashboard"));
+const SettingsPage = lazy(() => import("@/pages/Settings"));
+const ProfilePage = lazy(() => import("@/pages/Profile"));
+const ChatPage = lazy(() => import("@/pages/Chat"));
+const LoginPage = lazy(() => import("@/pages/Login"));
+const NotFoundPage = lazy(() => import("@/pages/NotFound"));
+
+function PageLoader() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  );
+}
+
+export function AppRouter() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* Redirects & 404 */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
+  );
+}
