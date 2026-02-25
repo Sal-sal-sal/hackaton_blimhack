@@ -1,13 +1,23 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Settings, UserCircle, X, PanelLeftClose, PanelLeftOpen, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Settings, UserCircle, X, PanelLeftClose, PanelLeftOpen, MessageSquare, Layers, Briefcase, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { setSidebarOpen, toggleSidebarCollapsed } from "@/features/ui/uiSlice";
 
-const navItems = [
+const candidateNav = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/swipe", icon: Layers, label: "Вакансии" },
+  { to: "/career-ai", icon: Sparkles, label: "AI Карьера" },
+  { to: "/chat", icon: MessageSquare, label: "Chat" },
+  { to: "/profile", icon: UserCircle, label: "Profile" },
+  { to: "/settings", icon: Settings, label: "Settings" },
+];
+
+const employerNav = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/my-jobs", icon: Briefcase, label: "Мои вакансии" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
   { to: "/profile", icon: UserCircle, label: "Profile" },
   { to: "/settings", icon: Settings, label: "Settings" },
@@ -16,7 +26,10 @@ const navItems = [
 export function Sidebar() {
   const open = useAppSelector((s) => s.ui.sidebarOpen);
   const collapsed = useAppSelector((s) => s.ui.sidebarCollapsed);
+  const role = useAppSelector((s) => s.auth.user?.role);
   const dispatch = useAppDispatch();
+
+  const navItems = role === "employer" ? employerNav : candidateNav;
 
   return (
     <>

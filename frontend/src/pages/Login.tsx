@@ -10,13 +10,32 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default function LoginPage() {
   const [email, setEmail] = useState("demo@example.com");
   const [password, setPassword] = useState("password");
+  const [role, setRole] = useState<"candidate" | "employer">("candidate");
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Demo login — replace with real API call
-    login({ id: "1", email, name: "Demo User" }, "demo-jwt-token");
+
+    if (role === "employer") {
+      // Seed employer data in backend
+      try {
+        const base = import.meta.env.VITE_API_URL || "/api";
+        await fetch(`${base}/../auth/seed-employer`, { method: "POST" });
+      } catch {
+        // ignore — seed is best-effort
+      }
+      login(
+        { id: "1", email, name: "Demo Employer", role: "employer" },
+        "demo-jwt-token",
+      );
+    } else {
+      login(
+        { id: "1", email, name: "Demo User", role: "candidate" },
+        "demo-jwt-token",
+      );
+    }
+
     navigate("/dashboard");
   }
 
@@ -32,6 +51,26 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Role toggle */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={role === "candidate" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setRole("candidate")}
+              >
+                Кандидат
+              </Button>
+              <Button
+                type="button"
+                variant={role === "employer" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setRole("employer")}
+              >
+                Работодатель
+              </Button>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

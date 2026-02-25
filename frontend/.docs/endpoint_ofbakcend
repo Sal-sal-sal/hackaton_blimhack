@@ -1,0 +1,330 @@
+# WordFlow — Changelog
+
+---
+
+## Для Frontend разработчика — API Endpoints
+
+Base URL: `http://localhost:8000`
+
+Интерактивная документация: `http://localhost:8000/docs`
+
+---
+
+### Auth
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/auth/register` | Регистрация пользователя |
+
+**POST /auth/register**
+```json
+// Request
+{ "email": "user@example.com", "password": "secret" }
+
+// Response 201
+{ "id": 1, "email": "user@example.com" }
+```
+
+---
+
+### Профиль пользователя
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/profile` | Получить свой профиль |
+| PATCH | `/api/profile` | Обновить профиль |
+
+```json
+// PATCH /api/profile — Request
+{
+  "display_name": "Иван Петров",
+  "bio": "Python разработчик",
+  "avatar_url": "https://...",
+  "organization_id": 1,
+  "role": "CTO"
+}
+```
+
+---
+
+### Организации
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/organizations/` | Создать компанию |
+| GET | `/api/organizations/{id}` | Получить компанию |
+| PATCH | `/api/organizations/{id}` | Обновить компанию |
+
+```json
+// POST /api/organizations/ — Request
+{
+  "name": "Acme Corp",
+  "description": "...",
+  "website_url": "https://acme.com",
+  "logo_url": "https://..."
+}
+```
+
+---
+
+### Профиль кандидата
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/candidates/profile` | Создать профиль кандидата |
+| GET | `/api/candidates/profile` | Получить свой профиль |
+| PATCH | `/api/candidates/profile` | Обновить профиль |
+
+```json
+// POST/PATCH — Request
+{
+  "title": "Python Backend Developer",
+  "age": 25,
+  "city": "Москва"
+}
+
+// Response
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python Backend Developer",
+  "age": 25,
+  "city": "Москва",
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+### Резюме
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/candidates/resumes` | Создать резюме |
+| PATCH | `/api/candidates/resumes/{id}` | Обновить резюме |
+| DELETE | `/api/candidates/resumes/{id}` | Удалить резюме |
+
+```json
+// POST /api/candidates/resumes — Request
+{
+  "title": "Python Backend Developer",
+  "is_public": true,
+  "skills": [
+    { "name": "Python", "level": "expert", "years": 5 },
+    { "name": "FastAPI", "level": "senior", "years": 3 }
+  ],
+  "work_experience": [
+    {
+      "company": "Acme Corp",
+      "role": "Backend Dev",
+      "start": "2021-01",
+      "end": null,
+      "description": "Разработка API на FastAPI"
+    }
+  ],
+  "education": [
+    { "institution": "МГУ", "degree": "BS", "field": "Информатика", "year": 2020 }
+  ],
+  "desired_salary_min": 150000,
+  "desired_salary_max": 250000
+}
+
+// Response
+{
+  "id": 1,
+  "candidate_profile_id": 1,
+  "title": "Python Backend Developer",
+  "is_public": true,
+  "skills": [...],
+  "work_experience": [...],
+  "education": [...],
+  "desired_salary_min": 150000,
+  "desired_salary_max": 250000,
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+### Профиль работодателя
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/employers/profile` | Создать профиль работодателя |
+| GET | `/api/employers/profile` | Получить свой профиль |
+| PATCH | `/api/employers/profile` | Обновить профиль |
+
+```json
+// POST/PATCH — Request
+{
+  "organization_id": 1,
+  "job_title": "HR Manager"
+}
+
+// Response
+{
+  "id": 1,
+  "user_id": 1,
+  "organization_id": 1,
+  "job_title": "HR Manager",
+  "organization": { "id": 1, "name": "Acme Corp", "logo_url": "..." },
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+### Вакансии
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/job-posts/` | Лента вакансий |
+| GET | `/api/job-posts/{id}` | Одна вакансия + счётчик просмотров |
+| POST | `/api/job-posts/` | Создать вакансию |
+| PATCH | `/api/job-posts/{id}` | Обновить вакансию |
+| DELETE | `/api/job-posts/{id}` | Удалить вакансию |
+
+Query params для ленты: `offset`, `limit`, `organization_id`
+
+```json
+// POST /api/job-posts/ — Request
+{
+  "organization_id": 1,
+  "title": "Senior Python Developer",
+  "description": "Ищем опытного разработчика",
+  "requirements": "Опыт от 3 лет",
+  "tech_stack": ["Python", "FastAPI", "PostgreSQL", "Redis"],
+  "salary_min": 200000,
+  "salary_max": 350000
+}
+
+// Response (лента)
+{
+  "id": 1,
+  "title": "Senior Python Developer",
+  "tech_stack": ["Python", "FastAPI", "PostgreSQL", "Redis"],
+  "salary_min": 200000,
+  "salary_max": 350000,
+  "views_count": 42,
+  "likes_count": 5,
+  "author": { "id": 1, "email": "...", "profile": { "display_name": "...", "organization": {...} } },
+  "organization": { "id": 1, "name": "Acme Corp", "logo_url": "..." },
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+### Лайки / Отклики / Приглашения
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/likes/toggle` | Поставить / убрать лайк |
+
+```json
+// Request
+{ "target_type": "job_post", "target_id": 1 }
+
+// Response
+{ "liked": true, "likes_count": 6 }
+```
+
+**Значения `target_type`:**
+
+| target_type | Что происходит |
+|-------------|----------------|
+| `"job_post"` | Отклик на вакансию → автоматически открывается чат с рекрутером |
+| `"resume"` | Работодатель приглашает кандидата → открывается чат |
+| `"candidate_profile"` | То же самое через профиль кандидата |
+| `"class"` | Лайк на пост (без побочных эффектов) |
+| `"profile"` | Лайк на профиль |
+| `"message"` | Лайк на сообщение |
+
+---
+
+### Чаты
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/chats/direct/{user_id}` | Создать / найти личный чат с пользователем |
+| POST | `/api/chats/{id}/messages` | Отправить сообщение |
+| GET | `/api/chats/{id}/messages` | История сообщений |
+
+```json
+// POST /api/chats/{id}/messages — Request
+{ "content": "Привет! Расскажите о себе" }
+
+// GET /api/chats/{id}/messages — Response
+[
+  {
+    "id": 1,
+    "chat_id": 1,
+    "sender_id": null,
+    "content": "Новый отклик на вакансию «Senior Python Developer»",
+    "created_at": "..."
+  },
+  ...
+]
+```
+
+> `sender_id: null` — системное сообщение (автоматическое)
+
+---
+
+### Посты (Classes)
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/classes/` | Лента постов |
+| GET | `/api/classes/{id}` | Один пост |
+| POST | `/api/classes/` | Создать пост |
+| PATCH | `/api/classes/{id}` | Обновить пост |
+| DELETE | `/api/classes/{id}` | Удалить пост |
+
+---
+
+### Поиск (Full-Text)
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/search/job-posts?q=python` | Поиск по вакансиям |
+| GET | `/api/search/resumes?q=fastapi` | Поиск по резюме |
+
+Query params: `q` (обязательно, мин. 2 символа), `offset`, `limit`
+
+```json
+// GET /api/search/job-posts?q=python fastapi
+
+// Response
+[
+  {
+    "id": 1,
+    "title": "Senior Python Developer",
+    "tech_stack": ["Python", "FastAPI"],
+    "rank": 0.756,
+    ...
+  }
+]
+```
+
+> `rank` — релевантность от 0 до 1, результаты отсортированы по убыванию
+
+---
+
+### AI Чат (GPT-4o)
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| POST | `/api/chat/` | Стриминговый ответ от GPT-4o (SSE) |
+
+---
+
+---
+
+
+
+Themes: src/hooks/useTheme.ts

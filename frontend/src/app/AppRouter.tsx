@@ -7,7 +7,11 @@ const DashboardPage = lazy(() => import("@/pages/Dashboard"));
 const SettingsPage = lazy(() => import("@/pages/Settings"));
 const ProfilePage = lazy(() => import("@/pages/Profile"));
 const ChatPage = lazy(() => import("@/pages/Chat"));
+const SwipePage = lazy(() => import("@/pages/Swipe"));
 const LoginPage = lazy(() => import("@/pages/Login"));
+const MyJobPostsPage = lazy(() => import("@/pages/MyJobPosts"));
+const CreateJobPostPage = lazy(() => import("@/pages/CreateJobPost"));
+const CareerAIPage = lazy(() => import("@/pages/CareerAI"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
 function PageLoader() {
@@ -29,9 +33,13 @@ export function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/swipe" element={<SwipePage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/my-jobs" element={<MyJobPostsPage />} />
+            <Route path="/create-job" element={<CreateJobPostPage />} />
+            <Route path="/career-ai" element={<CareerAIPage />} />
           </Route>
         </Route>
 
