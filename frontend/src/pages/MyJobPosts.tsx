@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, Heart } from "lucide-react";
+import { Plus, Eye, Heart, Inbox, Archive } from "lucide-react";
+import { fetchApi } from "@/lib/fetchApi";
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
@@ -36,7 +37,7 @@ export default function MyJobPostsPage() {
     async function load() {
       try {
         // Get org
-        const orgRes = await fetch(`${API}/organizations/my`);
+        const orgRes = await fetchApi(`${API}/organizations/my`);
         if (!orgRes.ok) {
           throw new Error("Организация не найдена. Попробуйте перелогиниться как работодатель.");
         }
@@ -44,7 +45,7 @@ export default function MyJobPostsPage() {
         setOrgId(org.id);
 
         // Get jobs for this org
-        const jobsRes = await fetch(`${API}/job-posts/?organization_id=${org.id}`);
+        const jobsRes = await fetchApi(`${API}/job-posts/?organization_id=${org.id}`);
         if (!jobsRes.ok) throw new Error("Ошибка загрузки вакансий");
         const data = await jobsRes.json();
         setJobs(data);
@@ -131,9 +132,28 @@ export default function MyJobPostsPage() {
                     {job.views_count}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Heart className="h-4 w-4" />
-                    {job.likes_count}
+                    <Inbox className="h-4 w-4" />
+                    {job.likes_count} откликов
                   </span>
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/applications?job=${job.id}`)}
+                  >
+                    <Inbox className="mr-1 h-4 w-4" />
+                    Отклики ({job.likes_count})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    title="Архивировать"
+                  >
+                    <Archive className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>

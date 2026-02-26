@@ -9,6 +9,7 @@ from app.schemas.candidate import (
 )
 from app.schemas.resume import ResumeCreate, ResumeResponse, ResumeUpdate
 from app.schemas.survey import SurveyResultCreate, SurveyResultResponse
+from app.api.deps import get_current_user_id
 from app.services.candidate import (
     create_candidate_profile,
     create_resume,
@@ -20,11 +21,6 @@ from app.services.candidate import (
 )
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
-
-
-async def get_current_user_id() -> int:
-    """Placeholder — replace with JWT dependency."""
-    return 1
 
 
 # ─── Candidate Profile ────────────────────────────────────────────────────────
@@ -56,6 +52,15 @@ async def update_profile(
 
 
 # ─── Resumes ─────────────────────────────────────────────────────────────────
+
+@router.get("/resumes", response_model=list[ResumeResponse])
+async def list_resumes(
+    session: AsyncSession = Depends(get_session),
+    user_id: int = Depends(get_current_user_id),
+):
+    from app.services.candidate import get_candidate_resumes
+    return await get_candidate_resumes(session, user_id)
+
 
 @router.post("/resumes", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
 async def create(

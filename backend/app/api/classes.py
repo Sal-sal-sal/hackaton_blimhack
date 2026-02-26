@@ -1,16 +1,12 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user_id
 from app.database import get_session
 from app.schemas.class_ import ClassCreate, ClassFeedItem, ClassResponse, ClassUpdate
 from app.services.class_ import create_class, delete_class, get_class, list_classes, update_class
 
 router = APIRouter(prefix="/classes", tags=["classes"])
-
-# TODO: replace with real auth dependency when JWT is implemented
-async def get_current_user_id() -> int:
-    """Placeholder. Replace with JWT token extraction."""
-    return 1
 
 
 @router.get("/", response_model=list[ClassFeedItem])

@@ -15,6 +15,7 @@ class LikeResponse(BaseModel):
     user_id: int
     target_type: LikeTargetType
     target_id: int
+    status: str | None = None
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}

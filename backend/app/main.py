@@ -14,6 +14,8 @@ from app.api.employers import router as employers_router
 from app.api.search import router as search_router
 from app.api.profiles import router as profiles_router
 from app.api.career_ai import router as career_ai_router
+from app.api.applications import router as applications_router
+from app.api.favorites import router as favorites_router
 
 app = FastAPI(title="WordFlow API")
 
@@ -25,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/api")
 app.include_router(chat_router)
 app.include_router(classes_router,       prefix="/api")
 app.include_router(chats_router,         prefix="/api")
@@ -37,6 +39,8 @@ app.include_router(employers_router,     prefix="/api")
 app.include_router(search_router,        prefix="/api")
 app.include_router(profiles_router,      prefix="/api")
 app.include_router(career_ai_router,     prefix="/api")
+app.include_router(applications_router,  prefix="/api")
+app.include_router(favorites_router,     prefix="/api")
 
 
 @app.get("/health")

@@ -5,6 +5,7 @@ import uiReducer from "@/features/ui/uiSlice";
 import swipeReducer from "@/features/swipe/swipeSlice";
 import { apiSlice } from "@/store/apiSlice";
 import { swipeApi } from "@/features/swipe/swipeApi";
+import { favoritesApi } from "@/features/favorites/favoritesApi";
 
 export const store = configureStore({
   reducer: {
@@ -13,9 +14,10 @@ export const store = configureStore({
     swipe: swipeReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
     [swipeApi.reducerPath]: swipeApi.reducer,
+    [favoritesApi.reducerPath]: favoritesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware, swipeApi.middleware),
+    getDefaultMiddleware().concat(apiSlice.middleware, swipeApi.middleware, favoritesApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

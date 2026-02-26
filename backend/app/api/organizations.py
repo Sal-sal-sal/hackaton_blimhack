@@ -2,18 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user_id
 from app.database import get_session
 from app.models.profile import Profile
 from app.models.organization import Organization
 from app.schemas.organization import OrganizationCreate, OrganizationResponse, OrganizationUpdate
 from app.services.organization import create_organization, get_organization, update_organization
+from app.services.job_post import list_job_posts
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
-
-
-# TODO: replace with real JWT dependency
-async def get_current_user_id() -> int:
-    return 1
 
 
 @router.get("/my", response_model=OrganizationResponse)
@@ -62,3 +59,31 @@ async def update(
     session: AsyncSession = Depends(get_session),
 ):
     return await update_organization(session, org_id, data)
+
+
+@router.get("/{org_id}/public")
+async def get_public_profile(
+    org_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Public company page: organization info + active job posts."""
+    org = await get_organization(session, org_id)
+    jobs = await list_job_posts(session, offset=0, limit=50, organization_id=org_id)
+
+    return {
+        "organization": OrganizationResponse.model_validate(org),
+        "job_posts": [
+            {
+                "id": jp.id,
+                "title": jp.title,
+                "description": jp.description,
+                "tech_stack": jp.tech_stack,
+                "salary_min": float(jp.salary_min) if jp.salary_min else None,
+                "salary_max": float(jp.salary_max) if jp.salary_max else None,
+                "views_count": jp.views_count,
+                "likes_count": likes_count,
+                "created_at": jp.created_at.isoformat(),
+            }
+            for jp, likes_count in jobs
+        ],
+    }

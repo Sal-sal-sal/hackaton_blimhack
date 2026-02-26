@@ -1,18 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user_id
 from app.database import get_session
 from app.models.like import LikeTargetType
 from app.schemas.like import LikeCreate, LikeToggleResult
 from app.services.like import toggle_like
 
 router = APIRouter(prefix="/likes", tags=["likes"])
-
-
-# TODO: replace with real auth dependency when JWT is implemented
-async def get_current_user_id() -> int:
-    """Placeholder. Replace with JWT token extraction."""
-    return 1
 
 
 @router.post("/toggle", response_model=LikeToggleResult)

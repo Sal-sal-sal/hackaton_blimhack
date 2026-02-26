@@ -71,6 +71,21 @@ async def update_candidate_profile(
     return profile
 
 
+async def get_candidate_resumes(session: AsyncSession, user_id: int) -> list[Resume]:
+    cp_id_result = await session.execute(
+        select(CandidateProfile.id).where(CandidateProfile.user_id == user_id)
+    )
+    cp_id = cp_id_result.scalar_one_or_none()
+    if cp_id is None:
+        return []
+    result = await session.execute(
+        select(Resume)
+        .where(Resume.candidate_profile_id == cp_id)
+        .order_by(Resume.updated_at.desc())
+    )
+    return list(result.scalars().all())
+
+
 # ─── Resumes ─────────────────────────────────────────────────────────────────
 
 async def _get_candidate_profile_id(session: AsyncSession, user_id: int) -> int:

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.schemas.job_post import JobPostCreate, JobPostFeedItem, JobPostResponse, JobPostUpdate
+from app.api.deps import get_current_user_id
 from app.services.job_post import (
     create_job_post,
     delete_job_post,
@@ -13,11 +14,6 @@ from app.services.job_post import (
 )
 
 router = APIRouter(prefix="/job-posts", tags=["job-posts"])
-
-
-# TODO: replace with real JWT dependency
-async def get_current_user_id() -> int:
-    return 1
 
 
 @router.get("/", response_model=list[JobPostFeedItem])

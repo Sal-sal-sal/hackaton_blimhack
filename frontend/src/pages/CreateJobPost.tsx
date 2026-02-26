@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fetchApi } from "@/lib/fetchApi";
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
@@ -16,6 +17,7 @@ export default function CreateJobPostPage() {
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [techStack, setTechStack] = useState("");
+  const [conditions, setConditions] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
 
@@ -26,7 +28,7 @@ export default function CreateJobPostPage() {
 
     try {
       // Get organization_id for current user
-      const orgRes = await fetch(`${API}/organizations/my`);
+      const orgRes = await fetchApi(`${API}/organizations/my`);
       if (!orgRes.ok) {
         throw new Error("Не удалось получить организацию. Убедитесь, что employer засеян.");
       }
@@ -45,7 +47,7 @@ export default function CreateJobPostPage() {
         salary_max: salaryMax ? Number(salaryMax) : null,
       };
 
-      const res = await fetch(`${API}/job-posts/`, {
+      const res = await fetchApi(`${API}/job-posts/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -103,6 +105,18 @@ export default function CreateJobPostPage() {
                 value={requirements}
                 onChange={(e) => setRequirements(e.target.value)}
                 placeholder="Опыт работы от 3 лет..."
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="conditions">Условия работы</Label>
+              <textarea
+                id="conditions"
+                value={conditions}
+                onChange={(e) => setConditions(e.target.value)}
+                placeholder="Удалённая работа, гибкий график, ДМС..."
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />

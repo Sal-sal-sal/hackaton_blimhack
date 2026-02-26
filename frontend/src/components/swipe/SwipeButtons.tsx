@@ -20,11 +20,11 @@ export function SwipeButtons({ onDislike, onLike, onSuperLike, disabled }: Swipe
         variant="outline"
         size="icon"
         disabled={disabled}
-        className="h-14 w-14 rounded-full border-2 border-red-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+        className="h-14 w-14 rounded-full border-2 border-red-300 bg-red-500/10 hover:border-red-400 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25"
         title="Пропустить"
         onClick={onDislike}
       >
-        <X className="h-7 w-7 text-red-400" />
+        <X className="h-7 w-7 text-red-400" fill="currentColor" />
       </Button>
 
       {/* Super Like */}
@@ -32,11 +32,11 @@ export function SwipeButtons({ onDislike, onLike, onSuperLike, disabled }: Swipe
         variant="outline"
         size="icon"
         disabled={disabled}
-        className="h-12 w-12 rounded-full border-2 border-yellow-300 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950"
+        className="h-12 w-12 rounded-full border-2 border-yellow-300 bg-yellow-500/10 hover:border-yellow-400 hover:bg-yellow-500/20 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25"
         title="Суперлайк"
         onClick={onSuperLike ?? onLike}
       >
-        <Star className="h-5 w-5 text-yellow-400" />
+        <Star className="h-5 w-5 text-yellow-400" fill="currentColor" />
       </Button>
 
       {/* Like */}
@@ -44,11 +44,11 @@ export function SwipeButtons({ onDislike, onLike, onSuperLike, disabled }: Swipe
         variant="outline"
         size="icon"
         disabled={disabled}
-        className="h-14 w-14 rounded-full border-2 border-green-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950"
+        className="h-14 w-14 rounded-full border-2 border-green-300 bg-green-500/10 hover:border-green-400 hover:bg-green-500/20 dark:bg-green-500/15 dark:hover:bg-green-500/25"
         title="Откликнуться"
         onClick={onLike}
       >
-        <Heart className="h-7 w-7 text-green-400" />
+        <Heart className="h-7 w-7 text-green-400" fill="currentColor" />
       </Button>
     </div>
   );

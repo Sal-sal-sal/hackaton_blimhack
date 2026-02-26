@@ -4,6 +4,7 @@ import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -33,6 +34,9 @@ class CandidateProfile(Base):
     title: Mapped[str | None] = mapped_column(String(200), index=True)
     age: Mapped[int | None] = mapped_column(Integer)
     city: Mapped[str | None] = mapped_column(String(100), index=True)
+    career_interests: Mapped[list] = mapped_column(JSONB, server_default="[]")
+    github_url: Mapped[str | None] = mapped_column(String(500))
+    portfolio_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

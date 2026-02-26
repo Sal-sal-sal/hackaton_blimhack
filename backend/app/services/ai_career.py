@@ -135,3 +135,341 @@ def analyze_resume(resume_text: str, skills: list[str], hh_vacancies: list[dict]
         messages=[{"role": "user", "content": prompt}],
     )
     return response.choices[0].message.content or ""
+
+
+def analyze_favorites(favorites_text: str, resume_text: str, skills: list[str]) -> dict:
+    """Analyze liked vacancies against user's resume and skills."""
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Ты — AI-карьерный аналитик. Тебе даны понравившиеся вакансии пользователя и его резюме/навыки.\n"
+                    "Проанализируй и верни строго JSON:\n"
+                    "{\n"
+                    '  "matches": [{"title": "...", "match_percent": 85, "matching_skills": ["..."], "missing_skills": ["..."]}, ...],\n'
+                    '  "gaps": [{"skill": "...", "priority": "high|medium|low", "vacancies_count": 3}, ...],\n'
+                    '  "common_themes": ["...", "..."],\n'
+                    '  "recommendations": ["навык1", "навык2", "навык3"]\n'
+                    "}\n"
+                    "matches — для каждой понравившейся вакансии: процент совпадения навыков, совпавшие и недостающие навыки.\n"
+                    "gaps — все навыки, которые требуются вакансиями, но отсутствуют у пользователя, с приоритетом.\n"
+                    "common_themes — общие тематики/направления среди понравившихся вакансий.\n"
+                    "recommendations — топ-3 навыка для изучения для максимального покрытия вакансий."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Резюме пользователя:\n{resume_text}\n\n"
+                    f"Навыки: {', '.join(skills) if skills else 'не указаны'}\n\n"
+                    f"Понравившиеся вакансии:\n{favorites_text}"
+                ),
+            },
+        ],
+    )
+    raw = (response.choices[0].message.content or "{}").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = {}
+    return {
+        "matches": data.get("matches", []),
+        "gaps": data.get("gaps", []),
+        "common_themes": data.get("common_themes", []),
+        "recommendations": data.get("recommendations", []),
+    }
+
+
+def generate_recommendations(
+    resume_text: str,
+    skills: list[str],
+    hh_vacancies: list[dict],
+    career_interests: list[str],
+) -> dict:
+    """Generate structured recommendations: skills_to_learn, courses, projects, career_directions."""
+    vacancies_summary = "\n".join(
+        f"- {v['title']} ({', '.join(v.get('key_skills', [])) or 'н/д'})"
+        for v in hh_vacancies[:5]
+    )
+    interests = ", ".join(career_interests) if career_interests else "не указаны"
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Ты — AI-карьерный консультант. На основе резюме, навыков, интересов и вакансий "
+                    "сгенерируй рекомендации. Верни строго JSON:\n"
+                    "{\n"
+                    '  "skills_to_learn": ["навык1", "навык2", ...],\n'
+                    '  "courses": [{"title": "...", "platform": "...", "url": "..."}, ...],\n'
+                    '  "projects": [{"title": "...", "description": "..."}, ...],\n'
+                    '  "career_directions": [{"title": "...", "description": "...", "match_percent": 85}, ...]\n'
+                    "}\n"
+                    "skills_to_learn — 5-8 навыков, которые стоит изучить.\n"
+                    "courses — 3-5 конкретных курсов (Coursera, Stepik, Udemy и т.д.).\n"
+                    "projects — 3-4 pet-проекта для портфолио.\n"
+                    "career_directions — 3-4 карьерных направления с % совпадения."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Резюме:\n{resume_text}\n\n"
+                    f"Навыки: {', '.join(skills) if skills else 'не указаны'}\n\n"
+                    f"Карьерные интересы: {interests}\n\n"
+                    f"Вакансии рынка:\n{vacancies_summary}"
+                ),
+            },
+        ],
+    )
+    raw = (response.choices[0].message.content or "{}").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = {}
+    return {
+        "skills_to_learn": data.get("skills_to_learn", []),
+        "courses": data.get("courses", []),
+        "projects": data.get("projects", []),
+        "career_directions": data.get("career_directions", []),
+    }
+
+
+def match_professions(resume_text: str, skills: list[str]) -> list[dict]:
+    """Determine which professions match the user's resume."""
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Ты — AI-карьерный аналитик. На основе резюме и навыков определи, "
+                    "на какие профессии/должности подходит кандидат.\n"
+                    "Верни строго JSON:\n"
+                    "{\n"
+                    '  "professions": [\n'
+                    '    {"title": "Frontend-разработчик", "match_percent": 85, "description": "Почему подходит..."},\n'
+                    "    ...\n"
+                    "  ]\n"
+                    "}\n"
+                    "professions — 5-8 профессий, отсортированных по match_percent (от большего к меньшему).\n"
+                    "match_percent — от 0 до 100, насколько резюме соответствует профессии.\n"
+                    "description — 1-2 предложения, почему кандидат подходит или что нужно подтянуть."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Резюме:\n{resume_text}\n\n"
+                    f"Навыки: {', '.join(skills) if skills else 'не указаны'}"
+                ),
+            },
+        ],
+    )
+    raw = (response.choices[0].message.content or "{}").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = {}
+    return data.get("professions", [])
+
+
+def compare_with_market(
+    resume_text: str, skills: list[str], hh_vacancies: list[dict]
+) -> dict:
+    """Compare user's resume against HH market requirements and return dashboard data."""
+    vacancies_summary = "\n".join(
+        f"- {v['title']} ({', '.join(v.get('key_skills', [])) or 'н/д'}) — {v.get('employer', '')}"
+        for v in hh_vacancies[:10]
+    )
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Ты — AI-аналитик резюме. Оцени резюме кандидата в сравнении с требованиями рынка "
+                    "(вакансии с HeadHunter). Верни строго JSON:\n"
+                    "{\n"
+                    '  "overall_score": 78,\n'
+                    '  "category_scores": {\n'
+                    '    "content": 78,\n'
+                    '    "structure": 88,\n'
+                    '    "formatting": 72,\n'
+                    '    "keywords": 65,\n'
+                    '    "achievements": 70\n'
+                    "  },\n"
+                    '  "market_position": 22,\n'
+                    '  "market_comparison": [\n'
+                    '    {"axis": "Технические навыки", "user": 80, "market": 70},\n'
+                    '    {"axis": "Опыт", "user": 60, "market": 75},\n'
+                    '    {"axis": "Образование", "user": 85, "market": 70},\n'
+                    '    {"axis": "Soft Skills", "user": 70, "market": 65},\n'
+                    '    {"axis": "Достижения", "user": 50, "market": 60},\n'
+                    '    {"axis": "Оформление", "user": 75, "market": 70}\n'
+                    "  ],\n"
+                    '  "strengths": [\n'
+                    '    {"title": "Сильная сторона", "description": "Описание..."}\n'
+                    "  ],\n"
+                    '  "improvements": [\n'
+                    '    {"title": "Что улучшить", "description": "Описание...", "priority": "high"}\n'
+                    "  ]\n"
+                    "}\n\n"
+                    "overall_score — общая оценка резюме от 0 до 100.\n"
+                    "category_scores — оценки по 5 категориям (0-100): content (содержание/опыт), "
+                    "structure (структура), formatting (оформление), keywords (ключевые слова), "
+                    "achievements (достижения).\n"
+                    "market_position — позиция на рынке: число от 1 до 100 (Топ N% среди кандидатов).\n"
+                    "market_comparison — 6 осей для радарной диаграммы: оценка кандидата (user) и средний "
+                    "показатель рынка (market), оба 0-100.\n"
+                    "strengths — 3-5 сильных сторон резюме.\n"
+                    "improvements — 3-5 рекомендаций по улучшению с приоритетом (high/medium/low)."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Резюме кандидата:\n{resume_text}\n\n"
+                    f"Навыки: {', '.join(skills) if skills else 'не указаны'}\n\n"
+                    f"Вакансии рынка (HeadHunter):\n{vacancies_summary}"
+                ),
+            },
+        ],
+    )
+    raw = (response.choices[0].message.content or "{}").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = {}
+
+    # Normalize category_scores
+    cat_scores = data.get("category_scores", {})
+    for key in ("content", "structure", "formatting", "keywords", "achievements"):
+        val = cat_scores.get(key, 0)
+        cat_scores[key] = max(0, min(100, int(val))) if isinstance(val, (int, float)) else 0
+
+    # Normalize overall_score
+    os_val = data.get("overall_score", 0)
+    overall_score = max(0, min(100, int(os_val))) if isinstance(os_val, (int, float)) else 0
+
+    # Normalize market_position
+    mp_val = data.get("market_position", 50)
+    market_position = max(1, min(100, int(mp_val))) if isinstance(mp_val, (int, float)) else 50
+
+    return {
+        "overall_score": overall_score,
+        "category_scores": cat_scores,
+        "market_position": market_position,
+        "market_comparison": data.get("market_comparison", []),
+        "strengths": data.get("strengths", []),
+        "improvements": data.get("improvements", []),
+    }
+
+
+def score_candidates_for_vacancy(vacancy_text: str, candidates: list[dict]) -> list[dict]:
+    """Score and sort candidates against a specific vacancy.
+
+    Each candidate dict should have:
+      - candidate_id: int
+      - name: str
+      - resume_text: str (compiled from profile + resumes)
+      - skills: list[str]
+      - ai_analysis: str (previous AI analysis summary, if available)
+
+    Returns sorted list (highest score first) with:
+      - candidate_id, name, score (0-100), reasoning, matching_skills, missing_skills
+    """
+    if not candidates:
+        return []
+
+    candidates_block = ""
+    for i, c in enumerate(candidates, 1):
+        candidates_block += (
+            f"--- Кандидат {i} (ID: {c['candidate_id']}, Имя: {c['name']}) ---\n"
+            f"Резюме:\n{c['resume_text']}\n"
+            f"Навыки: {', '.join(c['skills']) if c['skills'] else 'не указаны'}\n"
+        )
+        if c.get("ai_analysis"):
+            candidates_block += f"AI-анализ способностей:\n{c['ai_analysis']}\n"
+        candidates_block += "\n"
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Ты — AI-рекрутер. Тебе дана вакансия и список кандидатов.\n"
+                    "Для каждого кандидата определи процент соответствия вакансии (0-100%).\n"
+                    "Учитывай: навыки, опыт, образование, и AI-анализ способностей (если есть).\n\n"
+                    "Верни строго JSON:\n"
+                    "{\n"
+                    '  "scored_candidates": [\n'
+                    "    {\n"
+                    '      "candidate_id": 1,\n'
+                    '      "score": 85,\n'
+                    '      "reasoning": "Краткое обоснование (1-2 предложения)",\n'
+                    '      "matching_skills": ["Python", "FastAPI"],\n'
+                    '      "missing_skills": ["Docker", "Kubernetes"]\n'
+                    "    }\n"
+                    "  ]\n"
+                    "}\n\n"
+                    "Отсортируй scored_candidates по score от большего к меньшему.\n"
+                    "reasoning — на русском языке, кратко и конкретно."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"## Вакансия\n{vacancy_text}\n\n"
+                    f"## Кандидаты\n{candidates_block}"
+                ),
+            },
+        ],
+    )
+    raw = (response.choices[0].message.content or "{}").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = {}
+
+    scored = data.get("scored_candidates", [])
+    # Normalize scores and ensure all candidate_ids are present
+    result = []
+    for item in scored:
+        sc = item.get("score", 0)
+        result.append({
+            "candidate_id": item.get("candidate_id"),
+            "score": max(0, min(100, int(sc))) if isinstance(sc, (int, float)) else 0,
+            "reasoning": item.get("reasoning", ""),
+            "matching_skills": item.get("matching_skills", []),
+            "missing_skills": item.get("missing_skills", []),
+        })
+    # Sort by score descending
+    result.sort(key=lambda x: x["score"], reverse=True)
+    return result

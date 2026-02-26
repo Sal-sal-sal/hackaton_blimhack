@@ -11,6 +11,7 @@ from app.models.message import Message
 from app.models.class_ import Class
 from app.models.job_post import JobPost
 from app.models.like import Like, LikeTargetType
+from app.models.favorite import Favorite
 
 __all__ = [
     "User", "UserRole",
@@ -26,4 +27,5 @@ __all__ = [
     "Class",
     "JobPost",
     "Like", "LikeTargetType",
+    "Favorite",
 ]

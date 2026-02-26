@@ -3,17 +3,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.deps import get_current_user_id
 from app.database import get_session
 from app.models.profile import Profile
 from app.schemas.profile import ProfileResponse, ProfileUpdate
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
-
-
-# TODO: replace with real JWT auth dependency
-async def get_current_user_id() -> int:
-    """Placeholder. Replace with JWT token extraction."""
-    return 1
 
 
 @router.get("/me", response_model=ProfileResponse)

@@ -1,17 +1,12 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user_id
 from app.database import get_session
 from app.schemas.chat import ChatResponse, ChatWithLastMessage, MessageCreate, MessageResponse
 from app.services.chat import get_or_create_direct_chat, list_messages, list_my_chats, send_message
 
 router = APIRouter(prefix="/chats", tags=["chats"])
-
-
-# TODO: replace with real auth dependency when JWT is implemented
-async def get_current_user_id() -> int:
-    """Placeholder. Replace with JWT token extraction."""
-    return 1
 
 
 @router.get("/", response_model=list[ChatWithLastMessage])

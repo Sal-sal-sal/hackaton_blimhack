@@ -6,6 +6,7 @@ const initialState: SwipeState = {
   deck: [],
   liked: [],
   disliked: [],
+  likedCards: [],
   matchedCard: null,
 };
 
@@ -21,7 +22,7 @@ const swipeSlice = createSlice({
       const card = state.deck[state.deck.length - 1];
       if (!card) return;
       state.liked.push(card.id);
-      state.matchedCard = card;
+      state.likedCards.push(card);
       state.deck = state.deck.slice(0, -1);
     },
 
@@ -40,10 +41,19 @@ const swipeSlice = createSlice({
       state.deck = action.payload;
       state.liked = [];
       state.disliked = [];
+      state.likedCards = [];
       state.matchedCard = null;
+    },
+
+    /** Update a card's fields in-place (e.g. after lazy-fetching full description) */
+    updateCard(state, action: PayloadAction<{ id: string | number; changes: Partial<SwipeCard> }>) {
+      const idx = state.deck.findIndex((c) => c.id === action.payload.id);
+      if (idx !== -1) {
+        state.deck[idx] = { ...state.deck[idx], ...action.payload.changes };
+      }
     },
   },
 });
 
-export const { setDeck, swipeRight, swipeLeft, clearMatch, resetDeck } = swipeSlice.actions;
+export const { setDeck, swipeRight, swipeLeft, clearMatch, resetDeck, updateCard } = swipeSlice.actions;
 export default swipeSlice.reducer;
