@@ -10,7 +10,7 @@ from app.models.profile import Profile
 from app.models.user import User, UserRole
 from app.models.candidate_profile import CandidateProfile
 from app.schemas.user import UserCreate, UserResponse
-from app.services.auth import pwd_context, register_user
+from app.services.auth import hash_password, verify_password, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -69,7 +69,7 @@ async def register_employer(
     # 1. Create user
     user = User(
         email=data.email,
-        hashed_password=pwd_context.hash(data.password),
+        hashed_password=hash_password(data.password),
         role=UserRole.EMPLOYER,
     )
     session.add(user)
@@ -125,7 +125,7 @@ async def register_candidate(
 
     user = User(
         email=data.email,
-        hashed_password=pwd_context.hash(data.password),
+        hashed_password=hash_password(data.password),
         role=UserRole.CANDIDATE,
     )
     session.add(user)
@@ -159,7 +159,7 @@ async def login(
     result = await session.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
-    if not user or not pwd_context.verify(data.password, user.hashed_password):
+    if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный email или пароль",

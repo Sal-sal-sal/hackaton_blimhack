@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_session
 from app.schemas.candidate import (
@@ -40,6 +42,42 @@ async def get_profile(
     user_id: int = Depends(get_current_user_id),
 ):
     return await get_candidate_profile(session, user_id)
+
+
+@router.get("/profile/{user_id}", response_model=CandidateProfileResponse)
+async def get_public_profile(
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Return any candidate's public profile by user_id."""
+    from app.models.candidate_profile import CandidateProfile
+    result = await session.execute(
+        select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+    )
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+    return profile
+
+
+@router.get("/resumes/{user_id}/public", response_model=list[ResumeResponse])
+async def get_public_resumes(
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Return public resumes for a candidate by user_id."""
+    from app.models.candidate_profile import CandidateProfile
+    from app.models.resume import Resume
+    cp = await session.execute(
+        select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+    )
+    profile = cp.scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+    result = await session.execute(
+        select(Resume).where(Resume.candidate_profile_id == profile.id)
+    )
+    return result.scalars().all()
 
 
 @router.patch("/profile", response_model=CandidateProfileResponse)

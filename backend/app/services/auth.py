@@ -1,12 +1,18 @@
+import bcrypt
 from fastapi import HTTPException, status
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.user import UserCreate
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 async def register_user(session: AsyncSession, data: UserCreate) -> User:
@@ -19,7 +25,7 @@ async def register_user(session: AsyncSession, data: UserCreate) -> User:
 
     user = User(
         email=data.email,
-        hashed_password=pwd_context.hash(data.password),
+        hashed_password=hash_password(data.password),
     )
     session.add(user)
     await session.commit()

@@ -86,6 +86,7 @@ export default function CreateJobPostPage() {
         title,
         description,
         requirements: requirements || null,
+        conditions: conditions || null,
         tech_stack: techStack
           .split(",")
           .map((s: string) => s.trim())

@@ -15,6 +15,8 @@ const CareerAIPage = lazy(() => import("@/pages/CareerAI"));
 const ApplicationsPage = lazy(() => import("@/pages/Applications"));
 const CompanyProfilePage = lazy(() => import("@/pages/CompanyProfile"));
 const HHVacanciesPage = lazy(() => import("@/pages/HHVacancies"));
+const CandidateAnalysisPage = lazy(() => import("@/pages/CandidateAnalysis"));
+const UserProfilePage = lazy(() => import("@/pages/UserProfile"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
 function PageLoader() {
@@ -47,6 +49,8 @@ export function AppRouter() {
             <Route path="/company" element={<CompanyProfilePage />} />
             <Route path="/company/:orgId" element={<CompanyProfilePage />} />
             <Route path="/hh-vacancies" element={<HHVacanciesPage />} />
+            <Route path="/candidate-analysis" element={<CandidateAnalysisPage />} />
+            <Route path="/user/:userId" element={<UserProfilePage />} />
           </Route>
         </Route>
 

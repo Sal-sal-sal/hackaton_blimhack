@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, Heart, Inbox, Archive } from "lucide-react";
+import { Plus, Eye, Heart, Inbox, Archive, Sparkles } from "lucide-react";
 import { fetchApi } from "@/lib/fetchApi";
 
 const API = import.meta.env.VITE_API_URL || "/api";
@@ -145,6 +145,14 @@ export default function MyJobPostsPage() {
                   >
                     <Inbox className="mr-1 h-4 w-4" />
                     Отклики ({job.likes_count})
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/candidate-analysis?job=${job.id}`)}
+                    className="bg-rose-500 text-white hover:bg-rose-600"
+                  >
+                    <Sparkles className="mr-1 h-4 w-4" />
+                    AI Анализ
                   </Button>
                   <Button
                     size="sm"

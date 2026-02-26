@@ -4,6 +4,7 @@ import { setDeck, swipeLeft, swipeRight, resetDeck } from "@/features/swipe/swip
 import {
   useGetJobPostsForSwipeQuery,
   useGetHHSwipeFeedQuery,
+  useLikeJobPostMutation,
   mergeSwipeDecks,
 } from "@/features/swipe/swipeApi";
 import { SwipeStack } from "@/components/swipe/SwipeStack";
@@ -31,6 +32,7 @@ export default function SwipePage() {
   const likedCards = useAppSelector((s) => s.swipe.likedCards);
 
   const [addFavorite] = useAddFavoriteMutation();
+  const [likeJobPost] = useLikeJobPostMutation();
 
   // Toggle liked list visibility
   const [showLiked, setShowLiked] = useState(false);
@@ -84,6 +86,7 @@ export default function SwipePage() {
       setExitDir(dir);
 
       if (dir === "right" && card) {
+        // Save to favorites (personal bookmarks)
         addFavorite({
           vacancy_id: String(card.id),
           source: card.source ?? "local",
@@ -96,6 +99,11 @@ export default function SwipePage() {
           location: card.location,
           url: card.url,
         });
+
+        // Send like to backend (creates an application/отклик for employer to see)
+        if (card.source === "local" && typeof card.id === "number") {
+          likeJobPost(card.id);
+        }
       }
 
       setTimeout(() => {
@@ -104,7 +112,7 @@ export default function SwipePage() {
         exitingRef.current = false;
       }, ANIMATION_DURATION);
     },
-    [deck, dispatch, addFavorite],
+    [deck, dispatch, addFavorite, likeJobPost],
   );
 
   const handleReset = useCallback(() => {
