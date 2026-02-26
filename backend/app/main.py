@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.api.auth import router as auth_router
@@ -41,6 +44,12 @@ app.include_router(profiles_router,      prefix="/api")
 app.include_router(career_ai_router,     prefix="/api")
 app.include_router(applications_router,  prefix="/api")
 app.include_router(favorites_router,     prefix="/api")
+
+
+# Serve uploaded files (job images, etc.)
+_uploads_dir = Path(__file__).resolve().parent.parent / "uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 
 @app.get("/health")

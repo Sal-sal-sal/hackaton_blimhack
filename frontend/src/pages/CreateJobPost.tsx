@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchApi } from "@/lib/fetchApi";
+import { ImagePlus, X, Loader2 } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
@@ -20,6 +21,52 @@ export default function CreateJobPostPage() {
   const [conditions, setConditions] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
+
+  // Image upload state
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    // Upload to backend
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetchApi(`${API}/job-posts/upload-image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Не удалось загрузить изображение");
+      }
+
+      const data = await res.json();
+      setImageUrl(data.url);
+    } catch {
+      setError("Ошибка загрузки изображения");
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleRemoveImage() {
+    setImageUrl(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -45,6 +92,7 @@ export default function CreateJobPostPage() {
           .filter(Boolean),
         salary_min: salaryMin ? Number(salaryMin) : null,
         salary_max: salaryMax ? Number(salaryMax) : null,
+        image_url: imageUrl,
       };
 
       const res = await fetchApi(`${API}/job-posts/`, {
@@ -74,6 +122,61 @@ export default function CreateJobPostPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* ── Background image upload ── */}
+            <div className="space-y-2">
+              <Label>Фото на задний фон</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {imagePreview ? (
+                <div className="relative overflow-hidden rounded-xl border">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-48 w-full object-cover"
+                  />
+                  {/* Uploading overlay */}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  )}
+                  {/* Remove button */}
+                  {!uploading && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  {/* Success indicator */}
+                  {imageUrl && !uploading && (
+                    <div className="absolute bottom-2 left-2 rounded-full bg-green-500/90 px-2.5 py-0.5 text-xs font-medium text-white">
+                      Загружено
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/30 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/50 hover:text-foreground"
+                >
+                  <ImagePlus className="h-8 w-8" />
+                  <span className="text-sm font-medium">Нажмите, чтобы выбрать изображение</span>
+                  <span className="text-xs">JPG, PNG, WebP или GIF</span>
+                </button>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title">Название</Label>
               <Input
@@ -160,7 +263,7 @@ export default function CreateJobPostPage() {
             )}
 
             <div className="flex gap-2">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || uploading}>
                 {loading ? "Создание..." : "Создать вакансию"}
               </Button>
               <Button

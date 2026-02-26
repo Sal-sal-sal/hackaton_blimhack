@@ -49,10 +49,12 @@ class JobPost(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     requirements: Mapped[str | None] = mapped_column(Text)
+    conditions: Mapped[str | None] = mapped_column(Text)
     # Tech stack: ["Python", "FastAPI", "PostgreSQL", "Redis"]
     tech_stack: Mapped[list[str]] = mapped_column(
         ARRAY(Text), nullable=False, server_default="{}"
     )
+    image_url: Mapped[str | None] = mapped_column(String(500))
     salary_min: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), index=True)
     salary_max: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), index=True)
     # BigInt — supports billions of views

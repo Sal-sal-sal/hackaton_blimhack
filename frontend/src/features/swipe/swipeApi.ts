@@ -11,6 +11,7 @@ interface JobPostRaw {
   tech_stack: string[];
   salary_min: number | null;
   salary_max: number | null;
+  image_url: string | null;
   organization: { id: number; name: string; logo_url: string | null } | null;
 }
 
@@ -49,6 +50,7 @@ function mapJobPost(jp: JobPostRaw): SwipeCard {
     tags: jp.tech_stack,
     description: jp.description,
     logoUrl: jp.organization?.logo_url ?? undefined,
+    imageUrl: jp.image_url ?? undefined,
   };
 }
 

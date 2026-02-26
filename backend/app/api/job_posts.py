@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, status
+import os
+import uuid
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -12,6 +16,8 @@ from app.services.job_post import (
     track_view,
     update_job_post,
 )
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "job_images"
 
 router = APIRouter(prefix="/job-posts", tags=["job-posts"])
 
@@ -74,3 +80,26 @@ async def delete(
     user_id: int = Depends(get_current_user_id),
 ):
     await delete_job_post(session, job_post_id=job_post_id, requesting_user_id=user_id)
+
+
+@router.post("/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    user_id: int = Depends(get_current_user_id),
+):
+    """Upload a background image for a job post. Returns the public URL."""
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    ext = os.path.splitext(file.filename or "img.jpg")[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Unsupported image format")
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = UPLOAD_DIR / filename
+
+    contents = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    return {"url": f"/uploads/job_images/{filename}"}

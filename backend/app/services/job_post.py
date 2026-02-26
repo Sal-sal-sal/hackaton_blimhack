@@ -115,9 +115,11 @@ async def create_job_post(
         title=data.title,
         description=data.description,
         requirements=data.requirements,
+        conditions=data.conditions,
         tech_stack=data.tech_stack,
         salary_min=data.salary_min,
         salary_max=data.salary_max,
+        image_url=data.image_url,
     )
     session.add(obj)
     await session.commit()

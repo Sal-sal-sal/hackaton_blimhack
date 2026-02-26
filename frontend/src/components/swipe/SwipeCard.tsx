@@ -109,12 +109,12 @@ export function SwipeCard({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      <div className="relative h-full w-full overflow-hidden rounded-none shadow-xl lg:rounded-2xl lg:max-h-[1000px] lg:max-w-[618px]">
+      <div className="relative h-full w-full overflow-hidden rounded-none shadow-xl lg:rounded-2xl lg:max-h-[700px] lg:max-w-[432px]">
 
         {/* ── Instagram Stories progress bars (2 segments: image | details) ── */}
         {showBars && (
           <div className="absolute inset-x-3 top-3 z-30 flex gap-[3px]">
-Hey, Cortana.             {Array.from({ length: totalBars }, (_, i) => (
+            {Array.from({ length: totalBars }, (_, i) => (
               <div
                 key={i}
                 className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/35"
@@ -283,7 +283,7 @@ Hey, Cortana.             {Array.from({ length: totalBars }, (_, i) => (
             <div className="absolute inset-0 bg-black/80" />
 
             {/* Scrollable content — extra bottom padding on mobile for overlay buttons */}
-            <div className="absolute inset-0 z-10 flex flex-col overflow-y-auto pt-10 pb-24 lg:pb-5 px-5 text-white">
+            <div className="absolute inset-0 z-10 flex flex-col overflow-y-auto pt-10 pb-24 lg:pb-5 px-5 text-white scrollbar-hide">
               {/* Title header */}
               <div className="flex items-center gap-3 mb-5 shrink-0">
                 <Logo url={card.logoUrl} name={card.subtitle ?? card.title} />

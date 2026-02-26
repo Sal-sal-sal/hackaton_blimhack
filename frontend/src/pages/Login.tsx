@@ -7,35 +7,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import {
-  Briefcase, Search, ArrowLeft, ArrowRight,
+  Briefcase, Search, ArrowLeft, Check,
 } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
 type Role = "candidate" | "employer";
+type Step = "role" | "credentials";
 type Mode = "login" | "register";
 
-const ROLES: { value: Role; title: string; subtitle: string; icon: React.ReactNode; gradient: string; border: string }[] = [
-  {
-    value: "candidate",
-    title: "Я ищу работу",
-    subtitle: "Просматривайте вакансии, откликайтесь и находите идеальное место",
-    icon: <Search className="h-8 w-8" />,
-    gradient: "from-rose-500 to-pink-500",
-    border: "border-rose-200 hover:border-rose-400",
-  },
-  {
-    value: "employer",
-    title: "Я ищу сотрудников",
-    subtitle: "Публикуйте вакансии, свайпайте кандидатов и нанимайте лучших",
-    icon: <Briefcase className="h-8 w-8" />,
-    gradient: "from-violet-500 to-indigo-500",
-    border: "border-violet-200 hover:border-violet-400",
-  },
-];
-
 export default function LoginPage() {
-  const [step, setStep] = useState<"role" | "credentials">("role");
+  const [step, setStep] = useState<Step>("role");
   const [mode, setMode] = useState<Mode>("login");
   const [role, setRole] = useState<Role>("candidate");
 
@@ -54,8 +36,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  function handleRoleSelect(r: Role) {
-    setRole(r);
+  function handleContinue() {
     setStep("credentials");
     setError(null);
   }
@@ -72,7 +53,6 @@ export default function LoginPage() {
 
     try {
       if (mode === "login") {
-        // Login via backend
         const res = await fetch(`${API}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -90,7 +70,6 @@ export default function LoginPage() {
           user.token,
         );
       } else {
-        // Register
         if (role === "employer") {
           const res = await fetch(`${API}/auth/register-employer`, {
             method: "POST",
@@ -142,107 +121,146 @@ export default function LoginPage() {
     }
   }
 
-  const selectedRole = ROLES.find((r) => r.value === role)!;
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
+      {/* Theme toggle */}
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-lg space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Work<span className="text-rose-500">Swipe</span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {step === "role"
-              ? "Выберите, как вы хотите использовать платформу"
-              : mode === "login"
-                ? "Войдите в свой аккаунт"
-                : "Создайте аккаунт"}
-          </p>
-        </div>
-
-        {/* ── Step 1: Role selection ─────────────────────────── */}
-        {step === "role" && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {ROLES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => handleRoleSelect(r.value)}
-                className={cn(
-                  "group relative flex flex-col items-center gap-4 rounded-2xl border-2 bg-card p-8 text-center shadow-sm transition-all duration-200",
-                  r.border,
-                  "hover:shadow-md hover:-translate-y-0.5",
-                )}
-              >
-                <div className={cn(
-                  "flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-sm",
-                  r.gradient,
-                )}>
-                  {r.icon}
-                </div>
-                <div>
-                  <p className="text-base font-semibold">{r.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {r.subtitle}
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-              </button>
-            ))}
+      {/* Card */}
+      <div className="w-full max-w-md">
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-lg">
+          {/* Logo header */}
+          <div className="flex flex-col items-center gap-3 px-8 pt-10 pb-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-500 shadow-md">
+              <span className="text-2xl font-bold text-white">W</span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">
+              Work<span className="text-rose-500">Swipe</span>
+            </h1>
           </div>
-        )}
 
-        {/* ── Step 2: Credentials ────────────────────────────── */}
-        {step === "credentials" && (
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            {/* Role indicator bar */}
-            <div className={cn(
-              "flex items-center gap-3 bg-linear-to-r px-6 py-4 text-white",
-              selectedRole.gradient,
-            )}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                {selectedRole.icon}
+          {/* ── Step 1: Role selection ─────────────────────────── */}
+          {step === "role" && (
+            <div className="px-8 pb-8">
+              <h2 className="mb-5 text-center text-lg font-semibold">Вход</h2>
+
+              {/* Role options — HH-style bordered rows */}
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("candidate")}
+                  className={cn(
+                    "flex w-full items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition-all",
+                    role === "candidate"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/30",
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                    role === "candidate" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                  )}>
+                    <Search className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">Я ищу работу</p>
+                    <p className="text-xs text-muted-foreground">Профиль соискателя</p>
+                  </div>
+                  {role === "candidate" && (
+                    <Check className="h-5 w-5 shrink-0 text-primary" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRole("employer")}
+                  className={cn(
+                    "flex w-full items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition-all",
+                    role === "employer"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/30",
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                    role === "employer" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                  )}>
+                    <Briefcase className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">Я ищу сотрудников</p>
+                    <p className="text-xs text-muted-foreground">Профиль работодателя</p>
+                  </div>
+                  {role === "employer" && (
+                    <Check className="h-5 w-5 shrink-0 text-primary" />
+                  )}
+                </button>
               </div>
-              <div>
-                <p className="text-sm font-semibold">{selectedRole.title}</p>
-                <p className="text-xs text-white/70">{selectedRole.subtitle}</p>
+
+              {/* Action buttons */}
+              <div className="mt-6 space-y-3">
+                <Button
+                  onClick={handleContinue}
+                  className="w-full"
+                  size="lg"
+                >
+                  Войти
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setMode("register"); handleContinue(); }}
+                  className="w-full"
+                  size="lg"
+                >
+                  Зарегистрироваться
+                </Button>
               </div>
             </div>
+          )}
 
-            {/* Login / Register tabs */}
-            <div className="flex border-b">
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setError(null); }}
-                className={cn(
-                  "flex-1 py-3 text-center text-sm font-medium transition-colors",
-                  mode === "login"
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Вход
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode("register"); setError(null); }}
-                className={cn(
-                  "flex-1 py-3 text-center text-sm font-medium transition-colors",
-                  mode === "register"
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Регистрация
-              </button>
-            </div>
+          {/* ── Step 2: Credentials ────────────────────────────── */}
+          {step === "credentials" && (
+            <div className="px-8 pb-8">
+              {/* Role badge */}
+              <div className="mb-5 flex items-center justify-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  {role === "candidate" ? <Search className="h-3.5 w-3.5" /> : <Briefcase className="h-3.5 w-3.5" />}
+                </div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {role === "candidate" ? "Соискатель" : "Работодатель"}
+                </span>
+              </div>
 
-            <div className="p-6">
+              {/* Login / Register tabs */}
+              <div className="mb-5 flex rounded-lg border bg-muted/50 p-1">
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setError(null); }}
+                  className={cn(
+                    "flex-1 rounded-md py-2 text-center text-sm font-medium transition-all",
+                    mode === "login"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Вход
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("register"); setError(null); }}
+                  className={cn(
+                    "flex-1 rounded-md py-2 text-center text-sm font-medium transition-all",
+                    mode === "register"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Регистрация
+                </button>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -309,12 +327,8 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className={cn(
-                    "w-full text-white shadow-sm",
-                    role === "candidate"
-                      ? "bg-rose-500 hover:bg-rose-600"
-                      : "bg-violet-500 hover:bg-violet-600",
-                  )}
+                  className="w-full"
+                  size="lg"
                 >
                   {loading
                     ? "Загрузка..."
@@ -334,8 +348,13 @@ export default function LoginPage() {
                 Выбрать другую роль
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Footer text */}
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Нажимая «Войти» или «Зарегистрироваться», вы принимаете условия использования
+        </p>
       </div>
     </div>
   );

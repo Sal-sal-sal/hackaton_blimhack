@@ -35,6 +35,7 @@ export interface FavoriteResponse {
 export interface FavMatch {
   title: string;
   match_percent: number;
+  hire_chance: number;
   matching_skills: string[];
   missing_skills: string[];
 }

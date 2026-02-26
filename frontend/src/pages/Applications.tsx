@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare, UserPlus, Check, Sparkles, Loader2,
-  TrendingUp, AlertTriangle, ChevronDown, ChevronUp,
+  TrendingUp, AlertTriangle, ChevronDown, ChevronUp, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetchApi";
@@ -34,6 +34,11 @@ interface ScoredCandidate {
   reasoning: string;
   matching_skills: string[];
   missing_skills: string[];
+  hard_skills_score: number;
+  experience_score: number;
+  soft_skills_score: number;
+  skill_gap_analysis: string;
+  recommendation: string;
 }
 
 interface ScoreResult {
@@ -69,6 +74,53 @@ function ScoreBadge({ score }: { score: number }) {
     <span className={cn("rounded-full px-2.5 py-1 text-sm font-bold", color)}>
       {score}%
     </span>
+  );
+}
+
+function RecommendationBadge({ rec }: { rec: string }) {
+  if (rec === "invite") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+        <Check className="h-3 w-3" />
+        Рекомендуем
+      </span>
+    );
+  }
+  if (rec === "reject") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+        <AlertTriangle className="h-3 w-3" />
+        Не подходит
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+      Рассмотреть
+    </span>
+  );
+}
+
+function SubScoreBar({ label, score, weight }: { label: string; score: number; weight: string }) {
+  const barColor =
+    score >= 70 ? "bg-green-500" :
+    score >= 40 ? "bg-amber-500" : "bg-red-500";
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">
+          {label} <span className="text-muted-foreground/60">{weight}</span>
+        </span>
+        <span className="font-bold">{score}%</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted">
+        <div
+          className={cn("h-1.5 rounded-full transition-all", barColor)}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -281,7 +333,7 @@ export default function ApplicationsPage() {
               AI анализирует кандидатов...
             </p>
             <p className="text-xs text-violet-600 dark:text-violet-400">
-              Сравниваем навыки, опыт и AI-анализ каждого студента с требованиями вакансии
+              Оцениваем hard skills (×0.5), опыт (×0.3) и soft skills (×0.2) каждого кандидата
             </p>
           </div>
         </div>
@@ -331,12 +383,13 @@ export default function ApplicationsPage() {
                     )}
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">
                           {app.candidate_name || app.user_email}
                         </span>
                         <StatusBadge status={app.status} />
                         {sc && <ScoreBadge score={sc.score} />}
+                        {sc && <RecommendationBadge rec={sc.recommendation} />}
                       </div>
                       {app.resume_title && (
                         <p className="text-sm text-muted-foreground truncate">{app.resume_title}</p>
@@ -371,20 +424,20 @@ export default function ApplicationsPage() {
 
                   {/* Expanded AI analysis */}
                   {sc && isExpanded && (
-                    <div className="mt-3 space-y-3 border-t pt-3">
-                      {/* Reasoning */}
+                    <div className="mt-3 space-y-4 border-t pt-3">
+                      {/* Pro arguments */}
                       <p className="text-sm text-muted-foreground">{sc.reasoning}</p>
 
-                      {/* Score bar */}
+                      {/* Overall score bar */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Соответствие</span>
-                          <span className="font-bold">{sc.score}%</span>
+                          <span className="font-semibold text-foreground">Общее соответствие</span>
+                          <span className="font-bold text-lg">{sc.score}%</span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-muted">
+                        <div className="h-2.5 w-full rounded-full bg-muted">
                           <div
                             className={cn(
-                              "h-2 rounded-full transition-all",
+                              "h-2.5 rounded-full transition-all",
                               sc.score >= 70 ? "bg-green-500" :
                               sc.score >= 40 ? "bg-amber-500" : "bg-red-500"
                             )}
@@ -392,6 +445,31 @@ export default function ApplicationsPage() {
                           />
                         </div>
                       </div>
+
+                      {/* Three weighted sub-scores */}
+                      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Оценка по категориям
+                        </p>
+                        <SubScoreBar label="Тех. навыки" score={sc.hard_skills_score} weight="(×0.5)" />
+                        <SubScoreBar label="Опыт" score={sc.experience_score} weight="(×0.3)" />
+                        <SubScoreBar label="Soft skills" score={sc.soft_skills_score} weight="(×0.2)" />
+                      </div>
+
+                      {/* Skill gap analysis */}
+                      {sc.skill_gap_analysis && (
+                        <div className="flex gap-2.5 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-3">
+                          <BookOpen className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-0.5">
+                              Анализ пробелов
+                            </p>
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                              {sc.skill_gap_analysis}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Matching skills */}
                       {sc.matching_skills.length > 0 && (

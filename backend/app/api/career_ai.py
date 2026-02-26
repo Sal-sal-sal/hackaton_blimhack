@@ -220,6 +220,8 @@ class ProfileAnalyzeResponse(BaseModel):
     recommendations: RecommendationsOut
     professions: list[ProfessionMatchOut] = []
     dashboard: DashboardOut = DashboardOut()
+    github_url: str | None = None
+    portfolio_url: str | None = None
 
 
 @router.post("/analyze-profile", response_model=ProfileAnalyzeResponse)
@@ -270,6 +272,11 @@ async def analyze_profile(
     if all_skills:
         parts.append(f"Навыки: {', '.join(all_skills)}")
 
+    if profile.github_url:
+        parts.append(f"GitHub: {profile.github_url}")
+    if profile.portfolio_url:
+        parts.append(f"Портфолио: {profile.portfolio_url}")
+
     career_interests = profile.career_interests or []
     if career_interests:
         parts.append(f"Карьерные интересы: {', '.join(career_interests)}")
@@ -313,6 +320,8 @@ async def analyze_profile(
         recommendations=RecommendationsOut(**recommendations),
         professions=[ProfessionMatchOut(**p) for p in professions],
         dashboard=DashboardOut(**dashboard),
+        github_url=profile.github_url,
+        portfolio_url=profile.portfolio_url,
     )
 
 
@@ -321,6 +330,7 @@ async def analyze_profile(
 class FavMatchOut(BaseModel):
     title: str
     match_percent: int = 0
+    hire_chance: int = 0
     matching_skills: list[str] = []
     missing_skills: list[str] = []
 
@@ -350,7 +360,7 @@ async def analyze_favorites_endpoint(
     # Get favorites text
     favorites_text = await get_favorites_for_ai(session, user_id)
     if not favorites_text:
-        raise HTTPException(400, "Нет понравившихся вакансий для анализа")
+        return FavoritesAnalysisResponse()
 
     # Build resume text from profile
     try:
@@ -399,6 +409,11 @@ class ScoredCandidateOut(BaseModel):
     reasoning: str = ""
     matching_skills: list[str] = []
     missing_skills: list[str] = []
+    hard_skills_score: int = 0
+    experience_score: int = 0
+    soft_skills_score: int = 0
+    skill_gap_analysis: str = ""
+    recommendation: str = "consider"
 
 
 class ScoreCandidatesRequest(BaseModel):
@@ -530,13 +545,6 @@ async def hh_swipe_feed(
         v.setdefault("key_skills", [])
         v.setdefault("full_description", None)
 
-    # Fetch city photos for unique locations (cached per city)
-    locations = {v.get("location") for v in results if v.get("location")}
-    city_photos: dict[str, str | None] = {}
-    for city in locations:
-        if city:
-            city_photos[city] = await get_city_photo(city)
-
     cards = []
     for v in results:
         # Use full description if available, otherwise fall back to snippets
@@ -550,7 +558,8 @@ async def hh_swipe_feed(
             description = " · ".join(desc_parts) if desc_parts else None
 
         location = v.get("location")
-        image_url = city_photos.get(location) if location else None
+        employer = v.get("employer")
+        image_url = await get_city_photo(location, employer=employer) if location else None
 
         cards.append(HHSwipeCard(
             id=v["id"],

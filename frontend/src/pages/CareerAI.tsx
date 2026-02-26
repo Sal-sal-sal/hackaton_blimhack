@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
   Sparkles, Upload, X, ExternalLink, Loader2, Wand2,
   BookOpen, Lightbulb, Target, TrendingUp, ArrowRight, FileText, Heart,
-  CheckCircle2, AlertTriangle, Users,
+  CheckCircle2, AlertTriangle, Users, Github, Globe,
 } from "lucide-react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -117,6 +116,8 @@ interface ProfileAnalyzeResponse {
   recommendations: Recommendations;
   professions: ProfessionMatch[];
   dashboard: Dashboard;
+  github_url?: string | null;
+  portfolio_url?: string | null;
 }
 
 interface ManualAnalyzeResponse {
@@ -164,10 +165,7 @@ function scoresToChartData(scores: ResumeScores) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function CareerAIPage() {
-  const [searchParams] = useSearchParams();
-  const autoMode = searchParams.get("auto") === "1";
-
-  const [mode, setMode] = useState<"auto" | "manual">(autoMode ? "auto" : "manual");
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -191,12 +189,23 @@ export default function CareerAIPage() {
   const [favResult, setFavResult] = useState<FavoritesAnalysis | null>(null);
   const [favError, setFavError] = useState("");
 
+  const favAutoTriggered = useRef(false);
+
   useEffect(() => {
-    if (autoMode && !profileResult && !loading) {
+    if (!profileResult && !loading) {
       handleAutoAnalyze();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-trigger favorites analysis when favorites are available
+  useEffect(() => {
+    if (favorites.length > 0 && !favResult && !favLoading && !favAutoTriggered.current) {
+      favAutoTriggered.current = true;
+      handleAnalyzeFavorites();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favorites]);
 
   async function handleAutoAnalyze() {
     setError("");
@@ -567,6 +576,23 @@ export default function CareerAIPage() {
                   <span className="text-[10px] sm:text-xs text-white/80">Общая оценка</span>
                 </div>
               </div>
+              {/* Portfolio links */}
+              {(profileResult?.github_url || profileResult?.portfolio_url) && (
+                <div className="flex items-center gap-3 mt-3">
+                  {profileResult?.github_url && (
+                    <a href={profileResult.github_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs text-white hover:bg-white/30 transition-colors">
+                      <Github className="h-3.5 w-3.5" /> GitHub
+                    </a>
+                  )}
+                  {profileResult?.portfolio_url && (
+                    <a href={profileResult.portfolio_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs text-white hover:bg-white/30 transition-colors">
+                      <Globe className="h-3.5 w-3.5" /> Портфолио
+                    </a>
+                  )}
+                </div>
+              )}
               {/* Reset button */}
               <button
                 onClick={() => {
@@ -1014,18 +1040,9 @@ export default function CareerAIPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {!favResult && !favLoading && (
-              <div className="flex flex-col items-center gap-3 py-4">
-                <p className="text-sm text-muted-foreground text-center max-w-md">
-                  Сравним ваш профиль с понравившимися вакансиями и покажем, каких навыков не хватает
-                </p>
-                <Button
-                  className="bg-rose-500 hover:bg-rose-600 text-white"
-                  onClick={handleAnalyzeFavorites}
-                  disabled={favLoading}
-                >
-                  <Heart className="h-4 w-4 mr-2" />
-                  Анализировать избранное
-                </Button>
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                <p className="text-sm text-muted-foreground text-center">Ожидание запуска анализа...</p>
               </div>
             )}
 
@@ -1040,6 +1057,34 @@ export default function CareerAIPage() {
 
             {favResult && (
               <div className="space-y-4">
+                {/* Average hire chance summary */}
+                {favResult.matches.length > 0 && (() => {
+                  const avg = Math.round(favResult.matches.reduce((sum, m) => sum + (m.hire_chance || 0), 0) / favResult.matches.length);
+                  return (
+                    <div className={cn(
+                      "rounded-xl p-4 flex items-center gap-3",
+                      avg >= 60 ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50" :
+                      avg >= 30 ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50" :
+                      "bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/50"
+                    )}>
+                      <div className={cn(
+                        "w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold",
+                        avg >= 60 ? "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400" :
+                        avg >= 30 ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400" :
+                        "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                      )}>
+                        {avg}%
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Средний шанс трудоустройства</p>
+                        <p className="text-xs text-muted-foreground">
+                          На основе анализа {favResult.matches.length} понравившихся вакансий
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Per-vacancy match */}
                 {favResult.matches.length > 0 && (
                   <div className="space-y-2">
@@ -1052,14 +1097,24 @@ export default function CareerAIPage() {
                         <div key={i} className="rounded-xl border p-3 space-y-1.5">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium">{m.title}</p>
-                            <span className={cn(
-                              "rounded-full px-2.5 py-0.5 text-xs font-bold",
-                              m.match_percent >= 70 ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" :
-                              m.match_percent >= 40 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" :
-                              "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                            )}>
-                              {m.match_percent}%
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                m.hire_chance >= 60 ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" :
+                                m.hire_chance >= 30 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" :
+                                "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                              )}>
+                                Шанс: {m.hire_chance}%
+                              </span>
+                              <span className={cn(
+                                "rounded-full px-2.5 py-0.5 text-xs font-bold",
+                                m.match_percent >= 70 ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" :
+                                m.match_percent >= 40 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" :
+                                "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                              )}>
+                                {m.match_percent}%
+                              </span>
+                            </div>
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-muted">
                             <div

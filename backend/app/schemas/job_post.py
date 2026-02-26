@@ -19,9 +19,11 @@ class JobPostCreate(BaseModel):
     title: str
     description: str
     requirements: str | None = None
+    conditions: str | None = None
     tech_stack: list[str] = []
     salary_min: Decimal | None = None
     salary_max: Decimal | None = None
+    image_url: str | None = None
 
     @model_validator(mode="after")
     def salary_range_valid(self) -> "JobPostCreate":
@@ -35,9 +37,11 @@ class JobPostUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     requirements: str | None = None
+    conditions: str | None = None
     tech_stack: list[str] | None = None
     salary_min: Decimal | None = None
     salary_max: Decimal | None = None
+    image_url: str | None = None
 
 
 class JobPostResponse(BaseModel):
@@ -47,9 +51,11 @@ class JobPostResponse(BaseModel):
     title: str
     description: str
     requirements: str | None
+    conditions: str | None
     tech_stack: list[str]
     salary_min: Decimal | None
     salary_max: Decimal | None
+    image_url: str | None
     views_count: int
     created_at: datetime.datetime
     updated_at: datetime.datetime

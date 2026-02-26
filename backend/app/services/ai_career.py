@@ -150,12 +150,13 @@ def analyze_favorites(favorites_text: str, resume_text: str, skills: list[str]) 
                     "Ты — AI-карьерный аналитик. Тебе даны понравившиеся вакансии пользователя и его резюме/навыки.\n"
                     "Проанализируй и верни строго JSON:\n"
                     "{\n"
-                    '  "matches": [{"title": "...", "match_percent": 85, "matching_skills": ["..."], "missing_skills": ["..."]}, ...],\n'
+                    '  "matches": [{"title": "...", "match_percent": 85, "hire_chance": 60, "matching_skills": ["..."], "missing_skills": ["..."]}, ...],\n'
                     '  "gaps": [{"skill": "...", "priority": "high|medium|low", "vacancies_count": 3}, ...],\n'
                     '  "common_themes": ["...", "..."],\n'
                     '  "recommendations": ["навык1", "навык2", "навык3"]\n'
                     "}\n"
                     "matches — для каждой понравившейся вакансии: процент совпадения навыков, совпавшие и недостающие навыки.\n"
+                    "hire_chance — вероятность получить работу при текущем уровне навыков (0-100%).\n"
                     "gaps — все навыки, которые требуются вакансиями, но отсутствуют у пользователя, с приоритетом.\n"
                     "common_themes — общие тематики/направления среди понравившихся вакансий.\n"
                     "recommendations — топ-3 навыка для изучения для максимального покрытия вакансий."
@@ -178,8 +179,14 @@ def analyze_favorites(favorites_text: str, resume_text: str, skills: list[str]) 
         data = json.loads(raw)
     except json.JSONDecodeError:
         data = {}
+    # Normalize hire_chance in matches
+    matches = data.get("matches", [])
+    for m in matches:
+        hc = m.get("hire_chance", 0)
+        m["hire_chance"] = max(0, min(100, int(hc))) if isinstance(hc, (int, float)) else 0
+
     return {
-        "matches": data.get("matches", []),
+        "matches": matches,
         "gaps": data.get("gaps", []),
         "common_themes": data.get("common_themes", []),
         "recommendations": data.get("recommendations", []),
@@ -422,23 +429,32 @@ def score_candidates_for_vacancy(vacancy_text: str, candidates: list[dict]) -> l
             {
                 "role": "system",
                 "content": (
-                    "Ты — AI-рекрутер. Тебе дана вакансия и список кандидатов.\n"
-                    "Для каждого кандидата определи процент соответствия вакансии (0-100%).\n"
-                    "Учитывай: навыки, опыт, образование, и AI-анализ способностей (если есть).\n\n"
+                    "Ты — Smart Recruiting Assistant. Тебе дана вакансия и список кандидатов.\n"
+                    "Для каждого кандидата выполни детальную оценку по трём категориям с весами:\n\n"
+                    "1. Hard Skills (вес 0.5) — соответствие tech stack, конкретных технологий и инструментов.\n"
+                    "2. Experience (вес 0.3) — релевантный опыт работы, стаж, сложность проектов.\n"
+                    "3. Soft Skills (вес 0.2) — коммуникация, командная работа, лидерство (по сигналам из резюме).\n\n"
+                    "Итоговый compatibility_score = hard_skills_score * 0.5 + experience_score * 0.3 + soft_skills_score * 0.2\n\n"
                     "Верни строго JSON:\n"
                     "{\n"
                     '  "scored_candidates": [\n'
                     "    {\n"
                     '      "candidate_id": 1,\n'
-                    '      "score": 85,\n'
-                    '      "reasoning": "Краткое обоснование (1-2 предложения)",\n'
+                    '      "hard_skills_score": 80,\n'
+                    '      "experience_score": 70,\n'
+                    '      "soft_skills_score": 60,\n'
+                    '      "compatibility_score": 74,\n'
+                    '      "pro_arguments": "Почему кандидат подходит (1-3 предложения)",\n'
                     '      "matching_skills": ["Python", "FastAPI"],\n'
-                    '      "missing_skills": ["Docker", "Kubernetes"]\n'
+                    '      "missing_competencies": ["Docker", "Kubernetes"],\n'
+                    '      "skill_gap_analysis": "Краткий анализ пробелов в навыках (1-2 предложения)",\n'
+                    '      "recommendation": "invite"\n'
                     "    }\n"
                     "  ]\n"
                     "}\n\n"
-                    "Отсортируй scored_candidates по score от большего к меньшему.\n"
-                    "reasoning — на русском языке, кратко и конкретно."
+                    "recommendation — одно из: \"invite\" (стоит пригласить), \"consider\" (стоит рассмотреть), \"reject\" (не подходит).\n"
+                    "Все текстовые поля — на русском языке, кратко и конкретно.\n"
+                    "Отсортируй scored_candidates по compatibility_score от большего к меньшему."
                 ),
             },
             {
@@ -459,16 +475,31 @@ def score_candidates_for_vacancy(vacancy_text: str, candidates: list[dict]) -> l
         data = {}
 
     scored = data.get("scored_candidates", [])
-    # Normalize scores and ensure all candidate_ids are present
+
+    def _clamp(val: object) -> int:
+        return max(0, min(100, int(val))) if isinstance(val, (int, float)) else 0
+
     result = []
     for item in scored:
-        sc = item.get("score", 0)
+        hard = _clamp(item.get("hard_skills_score", 0))
+        exp = _clamp(item.get("experience_score", 0))
+        soft = _clamp(item.get("soft_skills_score", 0))
+        compat = _clamp(item.get("compatibility_score", 0))
+        # Fallback: compute weighted score if AI returned 0
+        if compat == 0 and (hard or exp or soft):
+            compat = round(hard * 0.5 + exp * 0.3 + soft * 0.2)
+
         result.append({
             "candidate_id": item.get("candidate_id"),
-            "score": max(0, min(100, int(sc))) if isinstance(sc, (int, float)) else 0,
-            "reasoning": item.get("reasoning", ""),
+            "score": compat,
+            "reasoning": item.get("pro_arguments", item.get("reasoning", "")),
             "matching_skills": item.get("matching_skills", []),
-            "missing_skills": item.get("missing_skills", []),
+            "missing_skills": item.get("missing_competencies", item.get("missing_skills", [])),
+            "hard_skills_score": hard,
+            "experience_score": exp,
+            "soft_skills_score": soft,
+            "skill_gap_analysis": item.get("skill_gap_analysis", ""),
+            "recommendation": item.get("recommendation", "consider"),
         })
     # Sort by score descending
     result.sort(key=lambda x: x["score"], reverse=True)

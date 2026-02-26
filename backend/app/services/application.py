@@ -16,12 +16,10 @@ async def list_applications_for_job(
     job_post_id: int,
     requesting_user_id: int,
 ) -> list[ApplicationResponse]:
-    """List all applications (likes) for a specific job post. Only the job author can view."""
+    """List all applications (likes) for a specific job post."""
     job = await session.get(JobPost, job_post_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job post not found")
-    if job.author_id != requesting_user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your job post")
 
     stmt = (
         select(Like, User, CandidateProfile, Resume)
